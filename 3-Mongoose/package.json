@@ -1,0 +1,7 @@
+{
+  "name": "Mongoose-Tutorial",
+  "main": "app.js",
+  "dependencies": {
+      "mongoose": "~3.8.25"
+  }
+}
