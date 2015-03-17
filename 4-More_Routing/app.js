@@ -1,6 +1,9 @@
 var express = require('express');
+var bodyParser = require('body-parser');
 
 var app = express();
+
+app.use(bodyParser.urlencoded({ extended: false }));
 
 var router = express.Router();
 
@@ -14,7 +17,9 @@ router.route('/users')
 
     // Post Request
     .post( function(request, response) {
-        response.send('Create a new user.');
+        var name = request.body.username;
+        var age = request.body.age;
+        response.send('Create user with name ' + name + ' and age ' + age);
     });
 
 // Router for url specifying a username
@@ -31,8 +36,6 @@ router.route('/users/:username')
     .delete( function(request, response) {
         response.send('Delete user: ' + request.params.username);
     });
-
-
 
 app.use('/api', router);
 app.listen(3000);
