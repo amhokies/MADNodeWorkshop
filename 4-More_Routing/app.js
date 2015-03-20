@@ -2,10 +2,11 @@ var express = require('express');
 var bodyParser = require('body-parser');
 
 var app = express();
-
-app.use(bodyParser.urlencoded({ extended: false }));
-
 var router = express.Router();
+
+var port = 3000;
+
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Router for url ending in /users
 router.route('/users')
@@ -38,4 +39,6 @@ router.route('/users/:username')
     });
 
 app.use('/api', router);
-app.listen(3000);
+app.listen(port);
+
+console.log('Server started on port ' + port);
