@@ -6,7 +6,8 @@ var router = express.Router();
 
 var port = 3000;
 
-app.use(bodyParser.urlencoded({ extended: true }));
+// Adding a parser for data encoded in post requests
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // Router for url ending in /users
 router.route('/users')
