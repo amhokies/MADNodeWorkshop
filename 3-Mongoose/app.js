@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 var models = require('./models');
 
 var Post = models.Post;
-var Reply = models.Reply;
+var Comment = models.Comment;
 
 mongoose.connect("mongodb://root:mad@ds031117.mongolab.com:31117/mad");
 
@@ -13,27 +13,27 @@ db.once('open', function(callback) {
 
     var newPost = new Post({ body: 'This is the post!' });
 
-    var reply1 = new Reply({
-        body: 'This is the first reply.',
-        parent: newPost._id
+    var comment1 = new Comment({
+        body: 'This is the first comment.',
+        parent: newPost
     });
 
-    var reply2 = new Reply({
-        body: 'This is the second reply.',
-        parent: newPost._id
+    var comment2 = new Comment({
+        body: 'This is the second comment.',
+        parent: newPost
     });
 
-    reply1.save(function(err) {});
-    reply2.save(function(err) {});
+    comment1.save(function(err) {});
+    comment2.save(function(err) {});
 
-    newPost.replies.push(reply1._id);
-    newPost.replies.push(reply2._id);
+    newPost.comments.push(comment1);
+    newPost.comments.push(comment2);
 
     newPost.save(function(err) {
         if (err) {
             console.log(err);
         } else {
-            console.log('Success!');
+            console.log(newPost);
         }
     });
 });
