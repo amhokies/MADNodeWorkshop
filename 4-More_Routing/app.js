@@ -22,7 +22,7 @@ router.route('/users')
         var name = request.body.username;
         var age = request.body.age;
         response.send('Create user with name ' + name + ' and age ' + age);
-    });
+});
 
 // Router for url specifying a username
 router.route('/users/:username')
@@ -31,13 +31,13 @@ router.route('/users/:username')
         response.send('Get user: ' + request.params.username);
     })
 
-    .put( function(request, response) {
+    .post( function(request, response) {
         response.send('Update user: ' + request.params.username);
     })
 
     .delete( function(request, response) {
         response.send('Delete user: ' + request.params.username);
-    });
+});
 
 app.use('/api', router);
 app.listen(port);

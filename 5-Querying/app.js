@@ -4,7 +4,6 @@ var mongoose = require('mongoose');
 
 var models = require('./models');
 var Post = models.Post;
-var Reply = models.Reply;
 
 mongoose.connect("mongodb://root:mad@ds031117.mongolab.com:31117/mad");
 
@@ -15,9 +14,7 @@ var commentRouter = express.Router();
 var port = 3000;
 
 // Adding a parser for data encoded in post requests
-app.use(bodyParser.urlencoded({
-    extended: false
-}));
+app.use(bodyParser.urlencoded({ extended: false }));
 
 ///////////////////////////////////////////////////////////
 ///////////////////// POST ROUTES /////////////////////////
@@ -28,7 +25,7 @@ app.use(bodyParser.urlencoded({
 // Saves a new post to the database.
 // Params:
 //  author: The author of the post. Can be left blank if anonymous.
-//  msg:    The message of the post.
+//  message:    The message of the post.
 postRouter.route('/new').post(function(request, response) {
     var auth = request.body.author;
     var msg = request.body.message;
@@ -41,9 +38,7 @@ postRouter.route('/new').post(function(request, response) {
     newPost.save(function(err) {
         if (err) {
             response.status(400);
-            response.json({
-                msg: 'Error'
-            });
+            response.json({ msg: 'Error' });
         } else {
             response.status(200);
             response.json(newPost);
@@ -56,20 +51,32 @@ postRouter.route('/new').post(function(request, response) {
 // Retrieves the 5 latest posts.
 postRouter.route('/latest').get(function(request, response) {
     Post.find({})
-        .populate('replies')
         .sort('-time')
         .limit(5)
-        .exec(function(err, docs) {
+        .exec(function(err, posts) {
             if (err) {
                 response.status(400);
-                response.json({
-                    msg: 'Error'
-                });
+                response.json({ msg: 'Error' });
             } else {
-                response.status(200);
-                response.json(docs);
+                response.json(posts);
             }
         });
+});
+
+// Route handler for /api/posts/:id -- where :id is the id of the post to get
+// Type: GET request
+// Retrieves a post by its id number.
+postRouter.route('/:id').get(function(request, response) {
+    var id = request.params.id;
+
+    Post.findById(id, function (err, post) {
+        if (post) {
+            response.json(post);
+        } else {
+            response.status(404);
+            response.json({ msg: 'Post not found' });
+        }
+    });
 });
 
 // Route handler for /api/posts/upvote
@@ -80,12 +87,12 @@ postRouter.route('/latest').get(function(request, response) {
 postRouter.route('/upvote').post(function(request, response) {
     var id = request.body.postID;
 
-    Post.findById(id, function(err, doc) {
-        if (doc) {
-            doc.points++;
-            doc.save();
+    Post.findById(id, function(err, post) {
+        if (post) {
+            post.points++;
+            post.save();
 
-            response.json(doc);
+            response.json(post);
         } else {
             response.status(404);
             response.json({ msg: 'Post not found'});
@@ -101,17 +108,13 @@ postRouter.route('/upvote').post(function(request, response) {
 postRouter.route('/downvote').post(function(request, response) {
     var id = request.body.postID;
 
-    Post.findById(id, function(err, doc) {
-        if (doc) {
+    Post.findById(id, function(err, post) {
+        if (post) {
 
-            doc.points--;
+            post.points--;
 
-            if (doc.points <= -5) {
-                doc.remove();
-            } else {
-                doc.save();
-            }
-            response.json(doc);
+            post.save();
+            response.json(post);
         } else {
             response.status(404);
             response.json({ msg: 'Post not found'});
@@ -127,10 +130,10 @@ postRouter.route('/downvote').post(function(request, response) {
 postRouter.route('/delete').delete(function(request, response) {
     var id = request.body.postID;
 
-    Post.findById(id, function(err, doc) {
-        if (doc) {
-            doc.remove();
-            response.json(doc);
+    Post.findById(id, function(err, post) {
+        if (post) {
+            post.remove();
+            response.json(post);
         } else {
             response.status(404);
             response.json({ msg: 'Post not found'});
@@ -142,32 +145,120 @@ postRouter.route('/delete').delete(function(request, response) {
 ////////////////// COMMENT ROUTES /////////////////////////
 ///////////////////////////////////////////////////////////
 
-
+// Route handler for /api/comments/new
+// Type: POST request
+// Saves a new comment to a post.
+// Params:
+//  message: The message of the post.
+//  postID: The id of the post to add the comment to.
 commentRouter.route('/new').post(function(request, response) {
     var msg = request.body.message;
     var id = request.body.postID;
 
-    var newComment = new Comment({ body: msg });
-
     // First we have to find if the post exists
     Post.findById(id, function(err, post) {
         if (post) {
-            // Now we know the post exists, we can add the comment and save
-            response.json(doc);
+            post.comments.push({ body: msg });
+
+            // Saving the post with the new comment added.
+            post.save(function(err) {
+                if (err) {
+                    response.status(400);
+                    response.json({ msg: 'Error' });
+                } else {
+                    response.json(post);
+                }
+            });
         } else {
             response.status(404);
             response.json({ msg: 'Post not found'});
         }
     });
+});
 
+// Route handler for /api/comments/upvote
+// Type: POST request
+// Upvotes a single comment.
+// Params:
+//  postID: The id of the post the comment is on
+//  commentID:  The id of the comment to downvote
+commentRouter.route('/upvote').post(function(request, response) {
+    var pID = request.body.postID;
+    var cID = request.body.commentID;
 
-    newComment.save(function(err) {
-        if (err) {
-            response.status(400);
-            response.json({ msg: 'Error' });
+    Post.findById(pID, function(err, post) {
+        if (post) {
+            var comment = post.comments.id(cID);
+
+            if (comment) {
+                comment.points++;
+                post.save( function(err) {
+                    response.json(post);
+                });
+            } else {
+                response.status(404);
+                response.json({ msg: 'Comment not found' });
+            }
         } else {
-            response.status(200);
-            response.json(newComment);
+            response.status(404);
+            response.json({ msg: 'Post not found' });
+        }
+    });
+});
+
+// Route handler for /api/comments/downvote
+// Type: POST request
+// Downvotes a single comment.
+// Params:
+//  postID: The id of the post the comment is on
+//  commentID:  The id of the comment to downvote
+commentRouter.route('/downvote').post(function(request, response) {
+    var pID = request.body.postID;
+    var cID = request.body.commentID;
+
+    Post.findById(pID, function(err, post) {
+        if (post) {
+            var comment = post.comments.id(cID);
+
+            if (comment) {
+                comment.points--;
+            } else {
+                response.status(404);
+                response.json({ msg: 'Comment not found' });
+            }
+        } else {
+            response.status(404);
+            response.json({ msg: 'Post not found' });
+        }
+    });
+});
+
+commentRouter.route('/delete').delete(function(request, response) {
+    var pID = request.body.postID;
+    var cID = request.body.commentID;
+
+    Post.findById(pID, function(err, post) {
+        if (post) {
+            var comment = post.comments.id(cID);
+
+            if (comment) {
+                comment.remove();
+
+                post.save( function(err) {
+                    if (err) {
+                        response.json({ msg: 'Error '});
+                    } else {
+                        response.json(post);
+                    }
+                });
+
+            } else {
+                response.status(404);
+                response.json({ msg: 'Comment not found' });
+            }
+        } else {
+            response.status(404);
+            response.json({ msg: 'Post not found' });
         }
     });
 });
